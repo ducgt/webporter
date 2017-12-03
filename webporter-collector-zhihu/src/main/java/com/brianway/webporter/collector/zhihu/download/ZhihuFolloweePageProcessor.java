@@ -45,7 +45,7 @@ public class ZhihuFolloweePageProcessor implements PageProcessor {
 
     public static String generateFolloweeUrl(String urlToken) {
         final String URL_TEMPLATE = "https://www.zhihu.com/api/v4/members/%s/followees";
-        final String QUERY_PARAMS = "?include=data%5B*%5D.url_token&offset=0&per_page=30&limit=30";
+        final String QUERY_PARAMS = "?include=data%5B*%5D.answer_count%2Carticles_count%2Cgender%2Cfollower_count%2Cis_followed%2Cis_following%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics&offset=0&limit=20";
 
         String encoded = StringHelper.urlEncode(urlToken);
         return String.format(URL_TEMPLATE, encoded) + QUERY_PARAMS;
@@ -64,13 +64,17 @@ public class ZhihuFolloweePageProcessor implements PageProcessor {
     public static void main(String[] args) {
         String pipelinePath = new ZhihuConfiguration().getFolloweePath();
         int crawlSize = 100_0000;
+
+
+
         Spider.create(new ZhihuFolloweePageProcessor())
                 .setScheduler(//new QueueScheduler()
                         new FileCacheQueueScheduler(pipelinePath)
                                 .setDuplicateRemover(new BloomFilterDuplicateRemover(crawlSize)))
+                .setDownloader(new WebMagicCustomOfflineProxyDownloader())
                 .addPipeline(new ZhihuPipeline(pipelinePath))
                 .addUrl(generateFolloweeUrl("hydro-ding"))
-                .thread(20)
+                .thread(300)
                 .run();
     }
 }

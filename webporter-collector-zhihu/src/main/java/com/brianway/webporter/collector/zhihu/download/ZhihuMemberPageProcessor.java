@@ -3,6 +3,10 @@ package com.brianway.webporter.collector.zhihu.download;
 import com.brianway.webporter.collector.zhihu.ZhihuConfiguration;
 import com.brianway.webporter.collector.zhihu.processor.MemberURLTokenGenerator;
 import com.brianway.webporter.util.StringHelper;
+import com.virjar.dungproxy.client.ippool.IpPoolHolder;
+import com.virjar.dungproxy.client.ippool.config.DungProxyContext;
+import com.virjar.dungproxy.client.ippool.strategy.impl.WhiteListProxyStrategy;
+import com.virjar.dungproxy.webmagic6.DungProxyDownloader;
 import us.codecraft.webmagic.Page;
 import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.Spider;
@@ -44,9 +48,21 @@ public class ZhihuMemberPageProcessor implements PageProcessor {
         ZhihuConfiguration configuration = new ZhihuConfiguration();
         String pipelinePath = configuration.getMemberPath();
 
+        //以下是通过代码配置规则的方案,如果不使用配置文件,则可以解开注释,通过代码的方式
+        WhiteListProxyStrategy whiteListProxyStrategy = new WhiteListProxyStrategy();
+        whiteListProxyStrategy.addAllHost("www.zhihu.com");
+
+        // Step2 创建并定制代理规则
+        DungProxyContext dungProxyContext = DungProxyContext.create().setNeedProxyStrategy(whiteListProxyStrategy).setPoolEnabled(false);
+
+        // Step3 使用代理规则初始化默认IP池
+        IpPoolHolder.init(dungProxyContext);
+
+
         Spider spider = Spider.create(new ZhihuMemberPageProcessor())
                 .setScheduler(new FileCacheQueueScheduler(pipelinePath))
                 .addPipeline(new ZhihuPipeline(pipelinePath))
+                .setDownloader(new DungProxyDownloader())
                 .thread(20);
 
         MemberURLTokenGenerator generator = new MemberURLTokenGenerator();
